@@ -5,7 +5,7 @@
     "no-unused-expression": true
   },
   "rules": {
-    "quotemark": [true, "single"],
+    "quotemark": [true, "single", "avoid-escape"],
     "ordered-imports": [true],
     "max-line-length": [true, 100],
     "interface-name": [true, "always-prefix"],
@@ -74,7 +74,8 @@
     "new-parens": true,
     "typedef": [true, "call-signature", "parameter"],
     "variable-name": false,
-    "no-angle-bracket-type-assertion": false
+    "no-angle-bracket-type-assertion": false,
+    "no-unused-variable": true
   },
   "rulesDirectory": []
 }
