@@ -10,7 +10,7 @@
     "max-line-length": [true, 100],
     "interface-name": [true, "always-prefix"],
     "arrow-parens": [true, "ban-single-arg-parens"],
-    "object-literal-sort-keys": true,
+    "object-literal-sort-keys": false,
     "deprecation": {
       "severity": "warn"
     },
