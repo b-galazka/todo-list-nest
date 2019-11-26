@@ -9,9 +9,5 @@ module.exports = {
   database: process.env.DB_NAME || 'todo_list',
   username: process.env.DB_USER || 'root',
   password: process.env.DB_PASS !== undefined ? process.env.DB_PASS : '',
-  entities: ['./**/*.entity.js'],
-  migrations: ['migrations/*.ts'],
-  cli: {
-    migrationsDir: 'migrations'
-  }
+  entities: ['./**/*.entity.js']
 };
