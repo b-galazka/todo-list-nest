@@ -61,7 +61,7 @@
       }
     ],
     "prefer-readonly": true,
-    "array-type": [true, "generic"],
+    "array-type": [true, "array"],
     "arrow-return-shorthand": true,
     "class-name": true,
     "interface-over-type-literal": true,
