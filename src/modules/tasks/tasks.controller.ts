@@ -8,6 +8,10 @@ import { TasksService } from './tasks.service';
   model: {
     type: TaskEntity
   },
+  query: {
+    maxLimit: 100,
+    limit: 25
+  },
   params: {
     id: {
       field: 'id',
