@@ -1,11 +1,23 @@
 version: 2.1
 
+# reusable blocks
 defaults: &defaults
   docker:
     - image: circleci/node:12.13
 
   working_directory: ~/project
 
+deploy_filters: &deploy_filters
+  filters:
+    branches:
+      only:
+        - master
+
+# orbs
+orbs:
+  aws-cli: circleci/aws-cli@0.1.18
+
+# jobs
 jobs:
   install_dependencies:
     <<: *defaults
@@ -41,6 +53,9 @@ jobs:
             - tsconfig.json
             - yarn.lock
             - tslint.json
+            - Dockerfile
+            - Dockerrun.aws.json
+            - .ebignore
 
   lint:
     <<: *defaults
@@ -82,6 +97,78 @@ jobs:
           root: .
           paths: ./dist
 
+  create_env:
+    <<: *defaults
+
+    steps:
+      - run:
+          name: Extract environment variables to .env file
+          command: |
+            echo "DB_HOST=\"$DB_HOST\"" >> .env
+            echo "DB_PORT=$DB_PORT" >> .env
+            echo "DB_NAME=\"$DB_NAME\"" >> .env
+            echo "DB_USER=\"$DB_USER\"" >> .env
+            echo "DB_PASS=\"$DB_PASS\"" >> .env
+
+      - persist_to_workspace:
+          root: .
+          paths: ./.env
+
+  migrate_db:
+    <<: *defaults
+
+    steps:
+      - attach_workspace:
+          at: ~/project
+
+      - aws-cli/setup
+
+      - run:
+          name: Add CircleCI IP to whitelist
+          command: |
+            aws ec2 authorize-security-group-ingress \
+            --region $AWS_DEFAULT_REGION \
+            --group-id $AWS_DB_SECURITY_GROUP_ID \
+            --protocol tcp \
+            --port $DB_PORT \
+            --cidr "$(wget -qO- http://checkip.amazonaws.com)/32"
+
+      - run:
+          name: Create DB snapshot
+          command: |
+            aws rds create-db-snapshot \
+            --db-instance-identifier $DB_NAME \
+            --db-snapshot-identifier "premigration-$(date +%s%3N)"
+
+      - run: yarn migration:run
+
+  deploy:
+    <<: *defaults
+
+    steps:
+      - attach_workspace:
+          at: ~/project
+
+      - run:
+          name: Install AWS Elastic Beanstalk CLI
+          command: |
+            sudo apt-get -y -qq update
+            sudo apt-get install python-pip python-dev build-essential
+            sudo pip install --upgrade setuptools
+            sudo pip install awsebcli --upgrade
+
+      - run:
+          name: Initialize AWS Elastic Beanstalk CLI
+          command: |
+            eb init \
+            --keyname $AWS_EB_EC2_KEY_NAME \
+            --platform "arn:aws:elasticbeanstalk:$AWS_DEFAULT_REGION::platform/Docker running on 64bit Amazon Linux/2.14.0" \
+            --region $AWS_DEFAULT_REGION \
+            $AWS_EB_APP_NAME
+
+      - run: eb deploy $AWS_EB_MASTER_ENV_NAME
+
+# workflow
 workflows:
   version: 2
 
@@ -106,3 +193,21 @@ workflows:
             - lint
             - test
             - prettier
+
+      - create_env:
+          <<: *deploy_filters
+
+          requires:
+            - build
+
+      - migrate_db:
+          <<: *deploy_filters
+
+          requires:
+            - create_env
+
+      - deploy:
+          <<: *deploy_filters
+
+          requires:
+            - migrate_db
