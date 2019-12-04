@@ -104,6 +104,7 @@ jobs:
       - run:
           name: Extract environment variables to .env file
           command: |
+            echo "IP=\"$AWS_EB_EC2_PRIVATE_IP\"" >> .env
             echo "DB_HOST=\"$DB_HOST\"" >> .env
             echo "DB_PORT=$DB_PORT" >> .env
             echo "DB_NAME=\"$DB_NAME\"" >> .env
